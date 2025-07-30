@@ -1,0 +1,67 @@
+
+body {
+  margin: 0;
+  padding: 20px;
+  font-family: 'Courier New', monospace;
+  font-size: 18px;
+  background-color: #0d1f33;
+  color: #ffffff;
+}
+
+h1, h2, label {
+  color: #00ffe4;
+}
+
+button {
+  background-color: #00c9a7;
+  border: none;
+  padding: 10px 20px;
+  color: #001f33;
+  font-weight: bold;
+  margin: 10px 0;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+button:hover {
+  background-color: #00ffe4;
+}
+
+input, select {
+  margin: 5px 0;
+  padding: 6px 10px;
+  width: 100%;
+  background-color: #222;
+  color: #00ffe4;
+  border: 1px solid #555;
+  border-radius: 5px;
+}
+
+#messageBox {
+  background-color: #001a2b;
+  color: #7fffd4;
+  padding: 20px;
+  white-space: pre-wrap;
+  font-size: 16px;
+  line-height: 1.5;
+  min-height: 300px;
+  margin-bottom: 30px;
+  overflow-y: auto;
+  font-family: monospace;
+  box-shadow: inset 0 0 20px #00c9a7;
+  border: 12px solid #004466;
+}
+
+.view { border-left: 4px solid #3498db; padding-left: 10px; margin-bottom: 20px; }
+.payable { border-left: 4px solid gold; padding-left: 10px; margin-bottom: 20px; }
+.nonpayable { border-left: 4px solid orange; padding-left: 10px; margin-bottom: 20px; }
+
+#messageBox::after {
+  content: '█';
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% {{ opacity: 1; }}
+  51%, 100% {{ opacity: 0; }}
+}
