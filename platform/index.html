@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Fabryka Aukcji</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="console-style.css">
+  <script src="./ethers.umd.js"></script>
+  <style>
+    body {
+      display: flex;
+      height: 100vh;
+    }
+    #lewa, #srodek, #prawa {
+      padding: 10px;
+      overflow-y: auto;
+    }
+    #lewa {
+      width: 20%;
+    }
+    #srodek {
+      width: 60%;
+    }
+    #prawa {
+      width: 20%;
+      border-left: 2px solid #ccc;
+    }
+    .aukcja {
+      border: 1px solid #ccc;
+      margin: 5px;
+      padding: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+<div id="lewa">
+  <h2>Filtry</h2>
+  <label for="filterTitle">Tytuł aukcji:</label>
+  <input type="text" id="filterTitle">
+  <button onclick="applyFilters()">Szukaj</button>
+  <br><br>
+  <button onclick="window.location.href = 'fabrykaAukcji.html'" style="margin-bottom:20px;">← Stwórz Nową Aukcję<br>lub Transakcję</button>
+  <br><br> 
+  <h3>Social Media</h3>
+  <br>
+  <a href="https://x.com/MyCompanyDOGE" target="_blank" style="display:inline-block;margin-bottom:20px;padding:10px 20px;background-color:#f1c40f;color:black;text-decoration:none;border-radius:5px;font-weight:bold;"> My Company D.O.G.E. on X </a>
+<br>
+<a href="https://www.youtube.com/@mycompanydoge" target="_blank" style="display:inline-block;margin-bottom:20px;padding:10px 20px;background-color:#f1c40f;color:black;text-decoration:none;border-radius:5px;font-weight:bold;">
+  My Company D.O.G.E. on YouTube
+</a>
+<br>
+
+
+</div>
+<div id="srodek">
+  <h2>Lista aukcji</h2>
+  <div id="aukcjeLista"></div>
+  <div>
+    <button onclick="prevPage()">Poprzednia</button>
+    <span id="pageInfo">Strona 1</span>
+    <button onclick="nextPage()">Następna</button>
+  </div>
+</div>
+<div id="prawa">
+  <h2>Podgląd aukcji</h2>
+  <div id="podgladDane">Wybierz aukcję</div>
+
+
+
+</div>
+
+<script>
+let abiFabryki;
+let abiAukcji;
+let fabryka;
+let signer;
+let auctions = [];
+let currentPage = 0;
+const perPage = 100;
+const addressFabryki = "0xa92dc5587Df50043f5a4b9d142da1605aC82C2c5";
+
+async function init() {
+  const provider = new ethers.BrowserProvider(window.ethereum);
+  signer = await provider.getSigner();
+
+  abiFabryki = await fetch("fabrykaAukcji_v1.abi").then(r => r.json());
+  abiAukcji = await fetch("aukcja_v1.abi").then(r => r.json());
+
+  fabryka = new ethers.Contract(addressFabryki, abiFabryki, signer);
+  await loadAuctions();
+}
+
+async function loadAuctions() {
+  const total = await fabryka.indeksAukcji();
+  auctions = [];
+  for (let i = 0; i < total; i++) {
+    const addr = await fabryka.aukcjeZindeksowane(i);
+    const aukcja = new ethers.Contract(addr, abiAukcji, signer);
+    const dane = await aukcja.taAukcja();
+    auctions.push({ i, addr, title: dane.tytul });
+  }
+  renderAuctions();
+}
+
+function applyFilters() {
+  currentPage = 0;
+  renderAuctions();
+}
+
+function renderAuctions() {
+  const list = document.getElementById("aukcjeLista");
+  list.innerHTML = "";
+  const filter = document.getElementById("filterTitle").value.toLowerCase();
+  const filtered = auctions.filter(a => a.title.toLowerCase().includes(filter));
+  const paginated = filtered.slice(currentPage * perPage, (currentPage + 1) * perPage);
+  paginated.forEach(a => {
+    const div = document.createElement("div");
+    div.className = "aukcja";
+    div.innerHTML = `<b>Adres:</b> ${a.addr}<br><b>Tytuł:</b> ${a.title}`;
+    div.onclick = () => showDetails(a.addr);
+    list.appendChild(div);
+  });
+  document.getElementById("pageInfo").innerText = `Strona ${currentPage + 1}`;
+}
+
+function nextPage() {
+  currentPage++;
+  renderAuctions();
+}
+
+function prevPage() {
+  if (currentPage > 0) currentPage--;
+  renderAuctions();
+}
+
+async function showDetails(addr) {
+  const aukcja = new ethers.Contract(addr, abiAukcji, signer);
+  const dane = await aukcja.taAukcja();
+
+  const podglad = document.getElementById("podgladDane");
+  podglad.innerHTML = Object.entries(dane).map(([k,v]) => `<b>${k}:</b> ${v}<br>`).join("") +
+    `<br><a href="jednakAukcja.html?adresAukcji=${addr}" style="display:inline-block;margin-top:10px;padding:8px 12px;background-color:#f1c40f;color:black;text-decoration:none;border-radius:4px;font-weight:bold;">Wejdź w interakcje z aukcją</a>`;
+
+  window.currentAukcja = aukcja;
+  //loadContractFunctions(addr, abiAukcji);
+}
+
+
+async function loadContractFunctions(contractAddress, contractABI) {
+  const contract = new ethers.Contract(contractAddress, contractABI, signer);
+  const container = document.getElementById("contractFunctions");
+  container.innerHTML = '';
+
+  contractABI.forEach(func => {
+    if (func.type === "function") {
+      const funcDiv = document.createElement('div');
+      funcDiv.className = func.stateMutability;
+      const button = document.createElement('button');
+      button.textContent = func.name;
+      button.className = func.stateMutability;
+      const inputsDiv = document.createElement('div');
+      func.inputs.forEach(input => {
+        const inputLabel = document.createElement('label');
+        inputLabel.textContent = `${input.name} (${input.type}):`;
+        const inputEl = document.createElement('input');
+        inputEl.id = `${func.name}_${input.name}`;
+        inputsDiv.appendChild(document.createElement('br'));
+        inputsDiv.appendChild(inputLabel);
+        inputsDiv.appendChild(inputEl);
+      });
+      button.onclick = async () => {
+        const args = func.inputs.map(input => document.getElementById(`${func.name}_${input.name}`).value);
+        try {
+          let result;
+          if (func.stateMutability !== 'view' && func.stateMutability !== 'pure') {
+            result = await contract[func.name](...args);
+          } else {
+            result = await contract[func.name](...args);
+          }
+          alert(JSON.stringify(result, null, 2));
+        } catch (err) {
+          alert('Błąd: ' + err.message);
+        }
+      }
+      funcDiv.appendChild(button);
+      funcDiv.appendChild(inputsDiv);
+      container.appendChild(funcDiv);
+    }
+  });
+}
+
+init();
+</script>
+</body>
+</html>
